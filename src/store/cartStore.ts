@@ -13,16 +13,16 @@ export interface CartItem {
 
 export interface Address {
   id: string;
-  title: string;
-  name?: string;
-  phone?: string;
-  street?: string;
+  title?: string;
+  addressLine?: string;
   city?: string;
   state?: string;
-  addressLine: string;
-  pincode: string;
-  lat: number;
-  lon: number;
+  pincode?: string;
+  lat?: number | string; // Made optional to prevent deduplication errors
+  lon?: number | string; // Made optional to prevent deduplication errors
+  street?: string;
+  name?: string;
+  phone?: string;
 }
 
 interface CartState {
