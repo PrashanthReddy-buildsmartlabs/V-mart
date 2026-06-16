@@ -39,7 +39,16 @@ interface CartState {
   isAuthenticated: boolean;
   isAuthLoading: boolean;
   uid: string | null;
-  user: { name: string; phone: string; role: string; displayName?: string; phoneNumber?: string; email?: string } | null;
+  user: { 
+    name: string; 
+    phone: string; 
+    role: string; 
+    displayName?: string; 
+    phoneNumber?: string; 
+    email?: string;
+    uid?: string;
+    addresses?: Address[];
+  } | null;
   savedAddresses: Address[];
   activeDeliveryAddress: Address | null;
   
