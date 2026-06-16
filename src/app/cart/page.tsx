@@ -59,16 +59,20 @@ export default function CartPage() {
     if (!isAuthLoading && isAuthenticated && !deliveryLocation) {
       if (savedAddresses.length > 0) {
         const address = savedAddresses[0];
-        setUserLocation(address.lat, address.lon);
+        if (address.lat !== undefined && address.lon !== undefined) {
+          setUserLocation(Number(address.lat), Number(address.lon));
+        }
         setDeliveryLocation(`${address.title} - ${address.pincode}`);
         setActiveDeliveryAddress(address);
         
-        const storeLat = parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "17.3850");
-        const storeLon = parseFloat(process.env.NEXT_PUBLIC_STORE_LON || "78.4867");
-        const distance = calculateDistance(address.lat, address.lon, storeLat, storeLon);
-        const outOfZone = distance > 5;
-        const fee = outOfZone ? 0 : Math.round(distance * 15);
-        setDeliveryDetails(fee, outOfZone);
+        if (address.lat !== undefined && address.lon !== undefined) {
+          const storeLat = parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "17.3850");
+          const storeLon = parseFloat(process.env.NEXT_PUBLIC_STORE_LON || "78.4867");
+          const distance = calculateDistance(Number(address.lat), Number(address.lon), storeLat, storeLon);
+          const outOfZone = distance > 5;
+          const fee = outOfZone ? 0 : Math.round(distance * 15);
+          setDeliveryDetails(fee, outOfZone);
+        }
       }
     }
   }, [isAuthenticated, isAuthLoading, savedAddresses, activeDeliveryAddress, setDeliveryDetails, setDeliveryLocation, setUserLocation, setActiveDeliveryAddress]);
