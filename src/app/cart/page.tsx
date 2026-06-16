@@ -46,7 +46,10 @@ export default function CartPage() {
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const rawSubtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const safeTotalMRP = Number(rawSubtotal) || 0;
+  const calculatedShipping = (deliveryFee !== null && !isOutOfZone) ? (Number(deliveryFee) || 0) : 0;
+  const finalTotalAmount = safeTotalMRP + calculatedShipping;
 
   // Hydrate global address selection if missing
   useEffect(() => {
@@ -127,14 +130,19 @@ export default function CartPage() {
       return;
     }
 
-    const grandTotal = subtotal + (deliveryFee || 0);
+    if (!finalTotalAmount || finalTotalAmount <= 0 || isNaN(finalTotalAmount)) {
+      toast.error("Invalid cart amount. Please refresh.");
+      return;
+    }
+
+    const grandTotal = finalTotalAmount;
 
     const orderData = {
       items,
       deliveryAddress: activeDeliveryAddress,
       paymentMethod: selectedPaymentMethod,
-      subtotal,
-      deliveryFee: deliveryFee || 0,
+      subtotal: safeTotalMRP,
+      deliveryFee: calculatedShipping,
       grandTotal,
       status: "Pending"
     };
@@ -163,7 +171,7 @@ export default function CartPage() {
           toast.dismiss(toastId);
           
           const options = {
-            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
             amount: Math.round(grandTotal * 100),
             currency: "INR",
             name: "V-MART",
@@ -444,7 +452,7 @@ export default function CartPage() {
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-2">Price Details</h3>
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Total MRP</span>
-                <span>₹{subtotal}</span>
+                <span>₹{safeTotalMRP}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Platform Fee</span>
@@ -458,7 +466,7 @@ export default function CartPage() {
               <div className="flex justify-between font-black text-gray-900 text-lg pt-1">
                 <span>Total Amount</span>
                 <span>
-                  ₹{deliveryFee !== null && !isOutOfZone ? subtotal + deliveryFee : subtotal}
+                  ₹{finalTotalAmount}
                 </span>
               </div>
             </div>
