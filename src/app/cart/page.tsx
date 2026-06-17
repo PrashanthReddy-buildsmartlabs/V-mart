@@ -167,7 +167,7 @@ export default function CartPage() {
             body: JSON.stringify({ amount: grandTotal }),
           });
           const data = await res.json();
-          if (!res.ok || !data.orderId) throw new Error(data.error || "Failed to create Razorpay order");
+          if (!res.ok || !data.id) throw new Error(data.error || "Failed to create Razorpay order");
           toast.dismiss(toastId);
           
           const options = {
@@ -176,7 +176,7 @@ export default function CartPage() {
             currency: "INR",
             name: "V-MART",
             description: "Order Checkout",
-            order_id: data.orderId,
+            order_id: data.id,
             handler: async function (response: any) {
               const verifyToast = toast.loading("Verifying payment...");
               try {

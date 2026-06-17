@@ -1,30 +1,37 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-export async function POST(req: NextRequest) {
-  try {
-    const { amount } = await req.json();
+const razorpay = new Razorpay({
+  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID as string,
+  key_secret: process.env.RAZORPAY_KEY_SECRET as string,
+});
 
-    if (!amount) {
-      return NextResponse.json({ error: "Amount is required" }, { status: 400 });
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { amount, currency = "INR" } = body;
+
+    if (!amount || isNaN(amount)) {
+      return NextResponse.json({ error: "Invalid amount provided" }, { status: 400 });
     }
 
-    const instance = new Razorpay({
-      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID as string,
-      key_secret: process.env.RAZORPAY_KEY_SECRET as string,
-    });
+    // CRUCIAL: Razorpay strictly requires the amount in paise (smallest unit) as an integer
+    const amountInPaise = Math.round(Number(amount) * 100);
 
     const options = {
-      amount: Math.round(amount * 100), // Convert to paisa
-      currency: "INR",
-      receipt: `rcpt_${Date.now()}`
+      amount: amountInPaise,
+      currency,
+      receipt: `rcpt_${Date.now()}`,
     };
 
-    const order = await instance.orders.create(options);
-
-    return NextResponse.json({ orderId: order.id });
+    const order = await razorpay.orders.create(options);
+    
+    return NextResponse.json(order, { status: 200 });
   } catch (error: any) {
-    console.error("Razorpay order creation error:", error);
-    return NextResponse.json({ error: error.message || "Failed to create order" }, { status: 500 });
+    console.error("Razorpay Order Creation Failed:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create Razorpay order" },
+      { status: 500 }
+    );
   }
 }
