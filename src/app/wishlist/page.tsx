@@ -116,10 +116,11 @@ export default function WishlistPage() {
               
               <Link href={`/product/${product.id}`} className="relative aspect-[3/4] overflow-hidden bg-gray-100 block">
                 <Image
-                  src={product.images ? product.images[0] : "/placeholder.jpg"}
+                  src={product.images && product.images[0] ? product.images[0] : "/placeholder.jpg"}
                   alt={product.name}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </Link>
               
@@ -160,7 +161,7 @@ export default function WishlistPage() {
             
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-20 relative bg-gray-100 rounded overflow-hidden shadow-sm border border-gray-200">
-                <Image src={selectedProductForSize.image || "/placeholder.jpg"} alt="product" fill className="object-cover" />
+                <Image src={selectedProductForSize.image || "/placeholder.jpg"} alt="product" fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
               <div className="flex-1 overflow-hidden">
                 <p className="text-sm font-bold text-gray-900 truncate">{selectedProductForSize.name}</p>

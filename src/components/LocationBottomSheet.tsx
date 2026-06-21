@@ -54,7 +54,9 @@ export function LocationBottomSheet({ isOpen, onClose, onCheck, onDetectLocation
             addressLine: `${streetPart ? streetPart + ', ' : ''}${city} - ${detectedPincode}`,
             city: city,
             state: state,
-            pincode: detectedPincode
+            pincode: detectedPincode,
+            lat: Number(latitude) || 0,
+            lon: Number(longitude) || 0
           };
 
           setActiveDeliveryAddress(newAddress);

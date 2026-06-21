@@ -76,6 +76,8 @@ export function HomeClient() {
           src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80&w=800" 
           alt="Sale Banner" 
           fill 
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          priority
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/20 flex flex-col justify-center items-center text-white">
@@ -94,7 +96,7 @@ export function HomeClient() {
               className="flex flex-col items-center gap-2 flex-shrink-0"
             >
               <div className={`w-16 h-16 rounded-full overflow-hidden relative border-2 ${selectedCategory === cat.name ? 'border-red-500' : 'border-gray-100'}`}>
-                <Image src={cat.image} alt={cat.name} fill className="object-cover" />
+                <Image src={cat.image} alt={cat.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
               <span className={`text-xs font-medium ${selectedCategory === cat.name ? 'text-red-500' : 'text-gray-700'}`}>
                 {cat.name}

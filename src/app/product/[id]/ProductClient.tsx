@@ -13,6 +13,21 @@ import { doc, getDoc, collection, query, where, limit, getDocs } from "firebase/
 import { db } from "@/lib/firebase";
 import { useEffect } from "react";
 
+const FallbackImage = ({ src, alt, fill, priority, sizes, className }: any) => {
+  const [imgSrc, setImgSrc] = useState(src || '/placeholder.jpg');
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill={fill}
+      priority={priority}
+      sizes={sizes}
+      className={className}
+      onError={() => setImgSrc('/placeholder.jpg')}
+    />
+  );
+};
+
 export function ProductClient({ productId }: { productId: string }) {
   const [product, setProduct] = useState<any>(null);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
@@ -217,7 +232,7 @@ export function ProductClient({ productId }: { productId: string }) {
           }}>
             {product.images.map((img: string, i: number) => (
               <div key={i} className="w-full h-full flex-shrink-0 snap-center relative">
-                <Image src={img || "/placeholder.jpg"} alt={`${product.name} ${i}`} fill className="object-cover" priority={i===0} />
+                <FallbackImage src={img || "/placeholder.jpg"} alt={`${product.name} ${i}`} fill className="object-cover" priority={i===0} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
             ))}
           </div>
@@ -283,7 +298,7 @@ export function ProductClient({ productId }: { productId: string }) {
                     selectedColor === color ? "ring-2 ring-offset-2 ring-pink-500" : "border border-gray-200"
                   }`}
                 >
-                  <Image src={(product.images && product.images[idx % product.images.length]) || "/placeholder.jpg"} alt={color} fill className="object-cover" />
+                  <Image src={(product.images && product.images[idx % product.images.length]) || "/placeholder.jpg"} alt={color} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 </button>
               ))}
             </div>
@@ -415,7 +430,7 @@ export function ProductClient({ productId }: { productId: string }) {
           <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="relative w-20 h-24 rounded overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
-                <Image src={`https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=200`} alt="Review" fill className="object-cover opacity-80" />
+                <Image src={`https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=200`} alt="Review" fill className="object-cover opacity-80" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
             ))}
           </div>
@@ -428,7 +443,7 @@ export function ProductClient({ productId }: { productId: string }) {
             {similarProducts.map((simProduct) => (
               <Link key={simProduct.id} href={`/product/${simProduct.id}`} className="w-[140px] flex-shrink-0 flex flex-col group">
                 <div className="relative aspect-[3/4] overflow-hidden rounded bg-gray-100 mb-2">
-                  <Image src={(simProduct.images && simProduct.images[0]) || "/placeholder.jpg"} alt={simProduct.name} fill className="object-cover transition-transform group-hover:scale-105" />
+                  <Image src={(simProduct.images && simProduct.images[0]) || "/placeholder.jpg"} alt={simProduct.name} fill className="object-cover transition-transform group-hover:scale-105" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 </div>
                 <h4 className="text-xs font-bold text-gray-900 truncate">{simProduct.brand}</h4>
                 <div className="flex items-center gap-1 mt-1">

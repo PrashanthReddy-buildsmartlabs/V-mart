@@ -48,7 +48,12 @@ export default function CartPage() {
 
   const rawSubtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const safeTotalMRP = Number(rawSubtotal) || 0;
-  const calculatedShipping = (deliveryFee !== null && !isOutOfZone) ? (Number(deliveryFee) || 0) : 0;
+  let calculatedShipping = (deliveryFee !== null && !isOutOfZone) ? (Number(deliveryFee) || 0) : 0;
+  
+  if (isNaN(calculatedShipping) || calculatedShipping === undefined) {
+      calculatedShipping = safeTotalMRP > 500 ? 0 : 50; 
+  }
+  
   const finalTotalAmount = safeTotalMRP + calculatedShipping;
 
   // Hydrate global address selection if missing
@@ -309,7 +314,7 @@ export default function CartPage() {
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4 bg-white p-4 shadow-sm border border-gray-100 rounded">
                   <div className="relative w-20 h-24 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
-                    <Image src={item.image || "/placeholder.jpg"} alt={item.name} fill className="object-cover" />
+                    <Image src={item.image || "/placeholder.jpg"} alt={item.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                   </div>
                   <div className="flex-1 flex flex-col justify-between">
                     <div>

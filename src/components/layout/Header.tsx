@@ -125,7 +125,7 @@ export function Header() {
                       className="flex items-center gap-4 py-2 border-b border-gray-100 group"
                     >
                       <div className="w-12 h-16 bg-gray-100 rounded relative overflow-hidden flex-shrink-0">
-                        <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+                        <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                       </div>
                       <div className="flex-1">
                         <h4 className="text-xs font-bold text-gray-900 group-hover:text-pink-600 transition-colors line-clamp-1">{product.brand}</h4>
