@@ -9,9 +9,12 @@ import { calculateDistance, calculateDeliveryFee } from "@/lib/geolocation";
 import { LocationBottomSheet } from "@/components/LocationBottomSheet";
 import { LoginBottomSheet } from "@/components/LoginBottomSheet";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { createOrderInFirebase } from "@/lib/sync";
 import Script from "next/script";
+import { CheckoutAddressModal } from "@/components/CheckoutAddressModal";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 export default function CartPage() {
   const router = useRouter();
@@ -42,6 +45,7 @@ export default function CartPage() {
 
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -121,11 +125,13 @@ export default function CartPage() {
     }
   };
 
-  const executeCheckout = async (currentUid?: string | null) => {
+  const executeCheckout = async (currentUid?: string | null, customAddress?: any) => {
     const activeUid = currentUid || uid || useCartStore.getState().uid;
+    const addrToUse = customAddress || activeDeliveryAddress;
+    
     if (!activeUid) return;
 
-    if (!activeDeliveryAddress) {
+    if (!addrToUse) {
       toast.error("Please add a delivery address first.");
       return;
     }
@@ -144,7 +150,7 @@ export default function CartPage() {
 
     const orderData = {
       items,
-      deliveryAddress: activeDeliveryAddress,
+      deliveryAddress: addrToUse,
       paymentMethod: selectedPaymentMethod,
       subtotal: safeTotalMRP,
       deliveryFee: calculatedShipping,
@@ -248,7 +254,42 @@ export default function CartPage() {
       setIsLoginModalOpen(true);
       return;
     }
-    executeCheckout(uid);
+    
+    if (!selectedPaymentMethod) {
+      toast.error("Please select a payment method.");
+      return;
+    }
+    
+    setIsCheckoutModalOpen(true);
+  };
+
+  const handleAddressContinue = async (newAddress: any) => {
+    try {
+      if (uid) {
+        const userRef = doc(db, 'users', uid);
+        const userDoc = await getDoc(userRef);
+        let addresses: any[] = [];
+        if (userDoc.exists()) {
+          addresses = userDoc.data().addresses || [];
+        }
+        
+        // Avoid duplicate by ID
+        if (!addresses.find(a => a.id === newAddress.id)) {
+          addresses.push(newAddress);
+          await setDoc(userRef, { addresses }, { merge: true });
+        }
+      }
+      setActiveDeliveryAddress(newAddress);
+      setIsCheckoutModalOpen(false);
+      
+      // Give state a moment to settle, then execute Razorpay callback
+      setTimeout(() => {
+        executeCheckout(uid, newAddress);
+      }, 100);
+    } catch (error) {
+      console.error("Failed to save address", error);
+      toast.error("Failed to save address");
+    }
   };
 
   const handleLoginSuccess = () => {
@@ -513,6 +554,11 @@ export default function CartPage() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onSuccess={handleLoginSuccess}
+      />
+      <CheckoutAddressModal 
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        onContinue={handleAddressContinue}
       />
     </div>
   );
