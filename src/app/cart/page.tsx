@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Trash2, MapPin, AlertCircle, Navigation, QrCode, CreditCard, Banknote, ShoppingBag } from "lucide-react";
 import { useCartStore, Address } from "@/store/cartStore";
 import { calculateDistance, calculateDeliveryFee } from "@/lib/geolocation";
-import { LocationBottomSheet } from "@/components/LocationBottomSheet";
 import { LoginBottomSheet } from "@/components/LoginBottomSheet";
 import { toast } from "sonner";
 import { createOrderInFirebase } from "@/lib/sync";
@@ -43,22 +42,30 @@ export default function CartPage() {
     user
   } = useCartStore();
 
-  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+
+  const userHasAddress = user?.addresses && user.addresses.length > 0;
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const rawSubtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const safeTotalMRP = Number(rawSubtotal) || 0;
-  let calculatedShipping = (deliveryFee !== null && !isOutOfZone) ? (Number(deliveryFee) || 0) : 0;
+  const subtotal = safeTotalMRP; 
   
+  const GST_RATE = 0.05; 
+  const calculatedGST = Math.round(subtotal * GST_RATE);
+  
+  const PACKAGING_FEE = 19; 
+  
+  let calculatedShipping = (deliveryFee !== null && !isOutOfZone) ? (Number(deliveryFee) || 0) : 0;
   if (isNaN(calculatedShipping) || calculatedShipping === undefined) {
-      calculatedShipping = safeTotalMRP > 500 ? 0 : 50; 
+      calculatedShipping = subtotal > 500 ? 0 : 50; 
   }
   
-  const finalTotalAmount = safeTotalMRP + calculatedShipping;
+  const finalShipping = isOutOfZone ? 0 : calculatedShipping;
+  const finalTotalAmount = subtotal + calculatedGST + PACKAGING_FEE + finalShipping;
 
   // Hydrate global address selection if missing
   useEffect(() => {
@@ -152,9 +159,11 @@ export default function CartPage() {
       items,
       deliveryAddress: addrToUse,
       paymentMethod: selectedPaymentMethod,
-      subtotal: safeTotalMRP,
-      deliveryFee: calculatedShipping,
-      grandTotal,
+      subtotal: subtotal,
+      gst: calculatedGST,
+      packagingFee: PACKAGING_FEE,
+      deliveryFee: finalShipping,
+      grandTotal: finalTotalAmount,
       status: "Pending"
     };
 
@@ -201,12 +210,12 @@ export default function CartPage() {
                   }),
                 });
                 const verifyData = await verifyRes.json();
-                if (verifyData.success) {
+                if (verifyData.isAuthentic) {
                   await createOrderInFirebase(activeUid, { ...orderData, paymentStatus: "Paid" });
                   clearCart();
                   toast.dismiss(verifyToast);
                   toast.success("Payment Successful! Order Placed.");
-                  router.push('/success');
+                  router.push(`/success?payment_id=${response.razorpay_payment_id}`);
                 } else {
                   throw new Error("Payment verification failed");
                 }
@@ -249,9 +258,13 @@ export default function CartPage() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckoutAction = () => {
     if (!isAuthenticated || !uid) {
       setIsLoginModalOpen(true);
+      return;
+    }
+    if (!userHasAddress && !activeDeliveryAddress) {
+      setIsCheckoutModalOpen(true);
       return;
     }
     
@@ -260,11 +273,15 @@ export default function CartPage() {
       return;
     }
     
-    if (user?.addresses && user.addresses.length > 0) {
-      executeCheckout(uid, user.addresses[0]);
-    } else {
-      setIsCheckoutModalOpen(true);
+    executeCheckout(uid, activeDeliveryAddress || user?.addresses?.[0]);
+  };
+
+  const handleSelectLocationAction = () => {
+    if (!isAuthenticated || !uid) {
+      setIsLoginModalOpen(true);
+      return;
     }
+    setIsCheckoutModalOpen(true);
   };
 
   const handleAddressContinue = async (newAddress: any) => {
@@ -285,11 +302,6 @@ export default function CartPage() {
       }
       setActiveDeliveryAddress(newAddress);
       setIsCheckoutModalOpen(false);
-      
-      // Give state a moment to settle, then execute Razorpay callback
-      setTimeout(() => {
-        executeCheckout(uid, newAddress);
-      }, 100);
     } catch (error) {
       console.error("Failed to save address", error);
       toast.error("Failed to save address");
@@ -396,13 +408,13 @@ export default function CartPage() {
             <div className="bg-white p-4 shadow-sm border border-gray-100 rounded space-y-4">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Delivery Location</h3>
               
-              {!deliveryLocation && !geoError ? (
+              {!activeDeliveryAddress && !deliveryLocation ? (
                 <button
-                  onClick={() => setIsLocationSheetOpen(true)}
+                  onClick={handleSelectLocationAction}
                   className="w-full flex items-center justify-between border border-gray-300 p-4 rounded hover:border-black transition-colors text-left"
                 >
                   <span className="text-sm font-bold text-gray-500">Select Delivery Location</span>
-                  <span className="text-pink-600 font-bold text-xs uppercase tracking-wide">Change</span>
+                  <span className="text-pink-600 font-bold text-xs uppercase tracking-wide">{userHasAddress ? "CHANGE" : "SELECT"}</span>
                 </button>
               ) : (
                 <div className="space-y-3">
@@ -427,10 +439,10 @@ export default function CartPage() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => setIsLocationSheetOpen(true)}
+                      onClick={handleSelectLocationAction}
                       className="text-pink-600 font-bold text-xs uppercase tracking-wide p-2 inline-block"
                     >
-                      Change
+                      {userHasAddress ? "CHANGE" : "SELECT"}
                     </button>
                   </div>
                   
@@ -504,6 +516,14 @@ export default function CartPage() {
                 <span>Total MRP</span>
                 <span>₹{safeTotalMRP}</span>
               </div>
+              <div className="flex justify-between text-sm mb-2 text-gray-600">
+                <span>Estimated GST (5%)</span>
+                <span className="font-medium">₹{calculatedGST}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2 text-gray-600">
+                <span>Secure Packaging</span>
+                <span className="font-medium">₹{PACKAGING_FEE}</span>
+              </div>
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Platform Fee</span>
                 <span className="text-green-600">FREE</span>
@@ -528,40 +548,22 @@ export default function CartPage() {
       {items.length > 0 && (
         <div className="fixed bottom-[64px] w-full max-w-md bg-white border-t border-gray-200 p-4 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
           <button
-            onClick={handleCheckout}
-            disabled={!deliveryLocation || isOutOfZone || isPlacingOrder}
-            className="w-full bg-pink-500 text-white py-4 text-sm tracking-widest uppercase font-black rounded shadow-md hover:bg-pink-600 transition active:scale-[0.98] disabled:opacity-50 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            onClick={handleCheckoutAction}
+            disabled={isOutOfZone || isPlacingOrder}
+            className={`w-full py-4 rounded font-black text-sm uppercase tracking-widest shadow-md transition active:scale-[0.98]
+              ${isOutOfZone || isPlacingOrder ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-900'}
+            `}
           >
-            {isPlacingOrder ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Processing...
-              </>
-            ) : isOutOfZone ? (
-              "Out of Delivery Zone"
-            ) : !deliveryLocation ? (
-              "Select Location"
-            ) : (
-              "Place Order"
-            )}
+            {isPlacingOrder ? "Placing Order..." : "Place Order"}
           </button>
         </div>
       )}
 
-      <LocationBottomSheet 
-        isOpen={isLocationSheetOpen}
-        onClose={() => setIsLocationSheetOpen(false)}
-        onDetectLocation={handleDetectLocation}
-        onCheck={handlePincodeCheck}
-      />
-      <LoginBottomSheet 
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onSuccess={handleLoginSuccess}
-      />
+      {/* Modals */}
+      <LoginBottomSheet isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <CheckoutAddressModal 
         isOpen={isCheckoutModalOpen}
-        onClose={() => setIsCheckoutModalOpen(false)}
+        onClose={() => setIsCheckoutModalOpen(false)} 
         onContinue={handleAddressContinue}
       />
     </div>

@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
       .digest("hex");
 
     if (generated_signature === razorpay_signature) {
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ message: "Payment verified successfully", isAuthentic: true }, { status: 200 });
     } else {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid payment signature" }, { status: 400 });
     }
   } catch (error: any) {
     console.error("Razorpay verification error:", error);
