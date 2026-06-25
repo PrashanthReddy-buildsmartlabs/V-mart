@@ -2,11 +2,12 @@
 
 import { useCartStore } from "@/store/cartStore";
 import { useState, useEffect } from "react";
-import { User, Package, HelpCircle, Heart, ChevronRight, Settings, CreditCard, Gift, ShieldAlert, Plus, Star, MapPin } from "lucide-react";
+import { User, Package, HelpCircle, Heart, ChevronRight, Settings, CreditCard, Gift, ShieldAlert, Plus, Star, MapPin, Edit2, Check, X } from "lucide-react";
 import { LoginBottomSheet } from "@/components/LoginBottomSheet";
 import Link from "next/link";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -14,6 +15,11 @@ export default function ProfilePage() {
   const { isAuthenticated, isAuthLoading, user, logout } = useCartStore();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -36,6 +42,35 @@ export default function ProfilePage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleSaveName = async () => {
+    if (!editNameValue.trim() || !user?.uid) {
+      setIsEditingName(false);
+      return;
+    }
+    
+    setIsSavingName(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        displayName: editNameValue,
+        name: editNameValue
+      });
+      
+      const currentState = useCartStore.getState();
+      useCartStore.setState({
+        user: { ...currentState.user, displayName: editNameValue, name: editNameValue } as any
+      });
+      
+      toast.success("Name updated");
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Error saving name:", error);
+      toast.error("Failed to update name");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   if (isAuthLoading || !isMounted) {
     return (
@@ -121,13 +156,50 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col h-full bg-gray-50 min-h-screen pb-24">
       {/* Post-login Header */}
-      <div className="bg-white px-4 pt-10 pb-6 shadow-sm flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-wide">
-            {user?.displayName ? user.displayName.split(' ')[0] + ' !' : 'Welcome !'}
-          </h1>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">
-            {user?.phoneNumber || user?.email || user?.phone || 'No contact info'}
+      <div className="bg-white px-4 pt-10 pb-6 shadow-sm flex justify-between items-start">
+        <div className="w-full">
+          {isEditingName ? (
+            <div className="flex items-center gap-2 w-full max-w-sm">
+              <input
+                type="text"
+                value={editNameValue}
+                onChange={(e) => setEditNameValue(e.target.value)}
+                className="flex-1 border-b-2 border-pink-500 py-1 px-0 text-xl font-black text-gray-900 outline-none bg-transparent"
+                placeholder="Full Name"
+                autoFocus
+              />
+              <button 
+                onClick={handleSaveName}
+                disabled={isSavingName}
+                className="p-2 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-200 transition"
+              >
+                {isSavingName ? <div className="w-5 h-5 border-2 border-pink-600 border-t-transparent rounded-full animate-spin"></div> : <Check className="w-5 h-5" />}
+              </button>
+              <button 
+                onClick={() => setIsEditingName(false)}
+                className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black text-gray-900 tracking-wide truncate max-w-[200px]">
+                {user?.displayName ? user.displayName.split(" ")[0] + " !" : "Welcome !"}
+              </h1>
+              <button 
+                onClick={() => {
+                  setEditNameValue(user?.displayName || user?.name || "");
+                  setIsEditingName(true);
+                }}
+                className="text-gray-400 hover:text-pink-600 transition p-1"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-2">
+            {user?.phoneNumber || user?.email || user?.phone || "No contact info"}
           </p>
         </div>
       </div>

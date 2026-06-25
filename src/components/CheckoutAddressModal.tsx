@@ -1,19 +1,31 @@
-import React, { useState } from 'react';
-import { X, MapPin } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { X, MapPin } from "lucide-react";
+import { toast } from "sonner";
+import { useCartStore } from "@/store/cartStore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: boolean, onClose: () => void, onContinue: (address: any) => void }) => {
-  const [pincode, setPincode] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [flat, setFlat] = useState('');
-  const [area, setArea] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [addressType, setAddressType] = useState('Home');
+  const currentUser = useCartStore((state) => state.user);
+  
+  const [pincode, setPincode] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [flat, setFlat] = useState("");
+  const [area, setArea] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [addressType, setAddressType] = useState("Home");
   const [lat, setLat] = useState<number>(0);
   const [lon, setLon] = useState<number>(0);
   const [isDetecting, setIsDetecting] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setName(currentUser.displayName || currentUser.name || "");
+      setEmail(currentUser.email || "");
+    }
+  }, [currentUser]);
 
   const handleDetectLocation = () => {
     setIsDetecting(true);
@@ -59,7 +71,7 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
   };
 
   const handlePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const code = e.target.value.replace(/\D/g, '').slice(0, 6);
+    const code = e.target.value.replace(/\D/g, "").slice(0, 6);
     setPincode(code);
     
     if (code.length === 6) {
@@ -78,7 +90,7 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pincode || !city || !state || !flat || !area || !name || !email) {
       toast.error("Please fill all fields");
@@ -90,7 +102,7 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
       return;
     }
     
-    onContinue({
+    const newAddressObject = {
       id: "addr-" + Date.now(),
       title: addressType,
       name,
@@ -100,9 +112,38 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
       state,
       addressLine: `${flat}, ${area}`,
       street: area,
+      flat: flat,
       lat,
       lon
-    });
+    };
+
+    if (currentUser && currentUser.uid) {
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        
+        // 1. Check and update root profile name if changed
+        if (name !== (currentUser.displayName || currentUser.name)) {
+          await updateDoc(userRef, {
+            name: name,
+            displayName: name
+          });
+        }
+        
+        // 2. Fetch current addresses, remove duplicates, and append new
+        const userSnap = await getDoc(userRef);
+        let updatedAddresses = userSnap.data()?.addresses || [];
+        
+        updatedAddresses = updatedAddresses.filter((addr: any) => !(addr.pincode === pincode && addr.flat === flat));
+        updatedAddresses.push(newAddressObject);
+        
+        await updateDoc(userRef, { addresses: updatedAddresses });
+
+      } catch (error) {
+        console.error("Error saving address logic:", error);
+      }
+    }
+
+    onContinue(newAddressObject);
   };
 
   if (!isOpen) return null;
@@ -159,8 +200,8 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase">Address Type</label>
             <div className="flex gap-4 mt-2">
-              <button type="button" onClick={() => setAddressType('Home')} className={`flex-1 py-2 rounded-full text-sm font-bold border ${addressType === 'Home' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-gray-200 text-gray-600'}`}>Home</button>
-              <button type="button" onClick={() => setAddressType('Work')} className={`flex-1 py-2 rounded-full text-sm font-bold border ${addressType === 'Work' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-gray-200 text-gray-600'}`}>Work</button>
+              <button type="button" onClick={() => setAddressType("Home")} className={`flex-1 py-2 rounded-full text-sm font-bold border ${addressType === "Home" ? "border-pink-500 bg-pink-50 text-pink-600" : "border-gray-200 text-gray-600"}`}>Home</button>
+              <button type="button" onClick={() => setAddressType("Work")} className={`flex-1 py-2 rounded-full text-sm font-bold border ${addressType === "Work" ? "border-pink-500 bg-pink-50 text-pink-600" : "border-gray-200 text-gray-600"}`}>Work</button>
             </div>
           </div>
           <button type="submit" className="w-full bg-pink-600 text-white font-bold py-4 rounded-xl mt-4 shadow-lg hover:bg-pink-700 transition-colors">
@@ -171,3 +212,4 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
     </div>
   );
 };
+

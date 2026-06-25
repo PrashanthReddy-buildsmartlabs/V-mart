@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Trash2, MapPin, AlertCircle, Navigation, QrCode, CreditCard, Banknote, ShoppingBag } from "lucide-react";
+import { Trash2, MapPin, AlertCircle, Navigation, QrCode, CreditCard, Banknote, ShoppingBag, ShieldCheck } from "lucide-react";
 import { useCartStore, Address } from "@/store/cartStore";
 import { calculateDistance, calculateDeliveryFee } from "@/lib/geolocation";
 import { LoginBottomSheet } from "@/components/LoginBottomSheet";
@@ -382,7 +382,13 @@ export default function CartPage() {
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center border border-gray-200 rounded">
                         <button
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          onClick={() => {
+                            if (item.quantity <= 1) {
+                              removeItem(item.id);
+                            } else {
+                              updateQuantity(item.id, item.quantity - 1);
+                            }
+                          }}
                           className="px-3 py-1 text-gray-500 hover:text-black transition font-bold"
                         >
                           -
@@ -539,6 +545,23 @@ export default function CartPage() {
                   ₹{finalTotalAmount}
                 </span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Security Badges */}
+        {items.length > 0 && (
+          <div className="mt-8 mb-28 text-center px-4">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <ShieldCheck className="w-5 h-5 text-green-600" />
+              <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">100% Secure Transaction</span>
+            </div>
+            <div className="flex justify-center gap-3 opacity-50 grayscale">
+              {/* Mock payment icons */}
+              <div className="w-10 h-6 bg-gray-200 rounded"></div>
+              <div className="w-10 h-6 bg-gray-200 rounded"></div>
+              <div className="w-10 h-6 bg-gray-200 rounded"></div>
+              <div className="w-10 h-6 bg-gray-200 rounded"></div>
             </div>
           </div>
         )}

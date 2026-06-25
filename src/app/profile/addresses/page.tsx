@@ -5,27 +5,20 @@ import Link from "next/link";
 import { useCartStore } from "@/store/cartStore";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { doc, updateDoc, arrayUnion, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { CheckoutAddressModal } from "@/components/CheckoutAddressModal";
 
 export default function AddressesPage() {
-  const { removeAddress, addAddress, user } = useCartStore();
+  const { user } = useCartStore();
   const addresses = user?.addresses || [];
   const [isAdding, setIsAdding] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [newAddress, setNewAddress] = useState({
-    title: "",
-    name: "",
-    street: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
 
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (user) {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, "users", user.uid);
         const unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
           const fetchedAddresses = docSnap.exists() ? (docSnap.data().addresses || []) : [];
           
@@ -48,36 +41,18 @@ export default function AddressesPage() {
     return () => unsubscribeAuth();
   }, []);
 
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAddress.title || !newAddress.street || !newAddress.pincode || !user?.uid) return;
-
-    const newAddressObject = {
-      id: "addr-" + Date.now(),
-      title: newAddress.title,
-      name: newAddress.name,
-      street: newAddress.street,
-      city: newAddress.city,
-      state: newAddress.state,
-      addressLine: `${newAddress.street}, ${newAddress.city}, ${newAddress.state}`,
-      pincode: newAddress.pincode,
-      // For demo, just reuse a fixed or random lat/lon
-      lat: 17.3850 + (Math.random() * 0.05),
-      lon: 78.4867 + (Math.random() * 0.05),
-    };
-
+  const handleDelete = async (addressToDelete: any) => {
+    if (!user?.uid) return;
     try {
-      await updateDoc(doc(db, 'users', user.uid), { 
-        addresses: arrayUnion(newAddressObject) 
-      });
-      addAddress(newAddressObject);
-
-      setNewAddress({ title: "", name: "", street: "", city: "", state: "", pincode: "" });
-      setIsAdding(false);
-      toast.success("Address Saved");
+      const userRef = doc(db, "users", user.uid);
+      const updatedAddresses = addresses.filter(
+        (addr: any) => addr.id !== addressToDelete.id
+      );
+      await updateDoc(userRef, { addresses: updatedAddresses });
+      toast.success("Address deleted");
     } catch (error) {
-      console.error("Error saving address:", error);
-      toast.error("Failed to save address");
+      console.error("Error deleting address:", error);
+      toast.error("Failed to delete address");
     }
   };
 
@@ -119,7 +94,7 @@ export default function AddressesPage() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button 
-                    onClick={() => removeAddress(addr.id)}
+                    onClick={() => handleDelete(addr)}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -133,91 +108,11 @@ export default function AddressesPage() {
         )}
       </div>
 
-      {isAdding && (
-        <div className="fixed inset-0 bg-black/60 z-[100] transition-opacity flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-2xl p-6 animate-in slide-in-from-bottom-full duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-black text-gray-900 uppercase tracking-widest">Add New Address</h2>
-              <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-900">
-                <Plus className="w-6 h-6 rotate-45" />
-              </button>
-            </div>
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Save As (e.g., Home, Work)</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newAddress.title}
-                  onChange={(e) => setNewAddress({...newAddress, title: e.target.value})}
-                  className="w-full border border-gray-300 rounded px-4 py-3 text-sm font-bold focus:border-black outline-none transition-colors"
-                  placeholder="Home"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Full Name</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newAddress.name}
-                  onChange={(e) => setNewAddress({...newAddress, name: e.target.value})}
-                  className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:border-black outline-none transition-colors"
-                  placeholder="John Doe"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Street Address</label>
-                <textarea 
-                  required
-                  rows={2}
-                  value={newAddress.street}
-                  onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
-                  className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:border-black outline-none transition-colors resize-none"
-                  placeholder="123, Street Name, Area..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">City</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={newAddress.city}
-                    onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
-                    className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:border-black outline-none transition-colors"
-                    placeholder="City"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">State</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={newAddress.state}
-                    onChange={(e) => setNewAddress({...newAddress, state: e.target.value})}
-                    className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:border-black outline-none transition-colors"
-                    placeholder="State"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Pincode</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newAddress.pincode}
-                  onChange={(e) => setNewAddress({...newAddress, pincode: e.target.value})}
-                  className="w-full border border-gray-300 rounded px-4 py-3 text-sm font-bold focus:border-black outline-none transition-colors"
-                  placeholder="500001"
-                />
-              </div>
-              <button type="submit" className="w-full bg-pink-500 text-white font-black text-sm uppercase tracking-widest py-4 rounded shadow-md hover:bg-pink-600 transition-colors mt-6">
-                Save Address
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <CheckoutAddressModal 
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)} 
+        onContinue={() => setIsAdding(false)}
+      />
 
       {/* Fixed Add Address Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-10 max-w-md mx-auto">
