@@ -260,7 +260,11 @@ export default function CartPage() {
       return;
     }
     
-    setIsCheckoutModalOpen(true);
+    if (user?.addresses && user.addresses.length > 0) {
+      executeCheckout(uid, user.addresses[0]);
+    } else {
+      setIsCheckoutModalOpen(true);
+    }
   };
 
   const handleAddressContinue = async (newAddress: any) => {

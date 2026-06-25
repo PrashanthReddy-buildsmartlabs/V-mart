@@ -69,13 +69,9 @@ export function Header() {
                 <Bell className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
               </Link>
-              {isAdminRoute ? (
+              {isAdminRoute && (
                 <Link href="/admin/settings" className="hover:text-black">
                   <Settings className="w-5 h-5" />
-                </Link>
-              ) : (
-                <Link href="/wishlist" className="hover:text-black">
-                  <Heart className="w-5 h-5" />
                 </Link>
               )}
             </div>

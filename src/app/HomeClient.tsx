@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { toast } from "sonner";
 
@@ -16,8 +15,6 @@ export function HomeClient() {
   const user = useCartStore((state) => state.user);
   const selectedCategory = useCartStore((state) => state.searchCategory);
   const setSelectedCategory = useCartStore((state) => state.setSearchCategory);
-  const toggleWishlist = useCartStore((state) => state.toggleWishlist);
-  const wishlistItems = useCartStore((state) => state.wishlistItems);
 
   const [products, setProducts] = useState<any[]>([]);
 
@@ -56,17 +53,6 @@ export function HomeClient() {
   const filteredProducts = selectedCategory === "All" 
     ? products 
     : products.filter(p => p?.category && selectedCategory ? p.category.toLowerCase() === selectedCategory.toLowerCase() : true);
-
-  const handleWishlist = (e: React.MouseEvent, product: any) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const isAdded = toggleWishlist(product.id);
-    if (isAdded) {
-      toast.success(`${product.brand} added to Wishlist`);
-    } else {
-      toast.info(`${product.brand} removed from Wishlist`);
-    }
-  };
 
   return (
     <div className="flex flex-col h-full bg-gray-50 pb-20">
@@ -137,7 +123,6 @@ export function HomeClient() {
         ) : (
           <div className="grid grid-cols-2 gap-4 pb-24">
             {filteredProducts.map((product) => {
-              const isWished = wishlistItems.includes(product.id);
               return (
                 <Link key={product.id} href={`/product/${product.id}`} className="group flex flex-col relative">
                   <div className="relative aspect-[3/4] overflow-hidden rounded-md mb-2 bg-gray-100">
@@ -153,14 +138,6 @@ export function HomeClient() {
                       {product.rating} <span className="text-green-600">★</span> | {product.reviews > 1000 ? (product.reviews / 1000).toFixed(1) + 'k' : product.reviews}
                     </div>
                   </div>
-
-                  {/* Wishlist Button Overlay */}
-                  <button 
-                    onClick={(e) => handleWishlist(e, product)}
-                    className="absolute top-2 right-2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-600 z-10"
-                  >
-                    <Heart className={`w-4 h-4 transition-colors ${isWished ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-                  </button>
 
                   <div className="flex flex-col flex-1">
                     <h3 className="text-sm font-bold text-gray-900 truncate">{product.brand}</h3>

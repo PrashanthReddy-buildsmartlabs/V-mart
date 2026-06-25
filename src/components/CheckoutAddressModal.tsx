@@ -57,7 +57,7 @@ export const CheckoutAddressModal = ({ isOpen, onClose, onContinue }: { isOpen: 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 bg-black/60 z-[9999] flex flex-col justify-end">
       <div className="bg-white w-full rounded-t-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <h2 className="font-bold text-lg">Add Delivery Address</h2>

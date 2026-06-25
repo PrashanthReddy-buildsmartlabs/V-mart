@@ -34,8 +34,6 @@ export function ProductClient({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
-  const toggleWishlist = useCartStore((state) => state.toggleWishlist);
-  const wishlistItems = useCartStore((state) => state.wishlistItems);
   const cartItems = useCartStore((state) => state.items);
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -143,17 +141,6 @@ export function ProductClient({ productId }: { productId: string }) {
     toast.success("Item added to your bag");
   };
 
-  const handleWishlistClick = () => {
-    const isAdded = toggleWishlist(product.id);
-    if (isAdded) {
-      toast.success("Added to Wishlist");
-    } else {
-      toast.info("Removed from Wishlist");
-    }
-  };
-
-  const isWished = product ? wishlistItems.includes(product.id) : false;
-
   const handleCheckLocation = () => {
     setLocationStatus("loading");
     if (!navigator.geolocation) {
@@ -248,9 +235,6 @@ export function ProductClient({ productId }: { productId: string }) {
             </button>
             <button className="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg text-gray-700 active:scale-95 transition-transform">
               <Share2 className="w-5 h-5" />
-            </button>
-            <button onClick={handleWishlistClick} className="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg text-gray-700 active:scale-95 transition-transform">
-              <Heart className={`w-5 h-5 transition-colors ${isWished ? 'fill-pink-500 text-pink-500' : ''}`} />
             </button>
           </div>
 
